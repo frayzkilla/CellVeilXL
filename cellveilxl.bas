@@ -1,12 +1,12 @@
-Attribute VB_Name = "cellveilxl"
+
 Option Explicit
 ' CellVeilXL 2.0: self-contained module; import only this file into Excel.
 Public Const CRYPTO_MODE As String = "production"  ' "demo" or "production"
 Private Const SCR_SHEET As String = "List1"
 Private Const HOST_SHEET As String = "List2"
-Private Const SOURCE_RANGE As String = "A1:A10"
-Private Const PUBLIC_KEY_CELL As String = "B1"
-Private Const PRIVATE_KEY_CELL As String = "B2"
+Private Const SOURCE_RANGE As String = "A1:B10"
+Private Const PUBLIC_KEY_CELL As String = "H1"
+Private Const PRIVATE_KEY_CELL As String = "H2"
 Private Const OUTPUT_CELL As String = "D1"
 Private Const HOST_RANGE As String = "" ' Empty = UsedRange; same selection for extraction
 Private Const MAX_BYTES As Long = 1048576
