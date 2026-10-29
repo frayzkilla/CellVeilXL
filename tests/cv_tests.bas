@@ -108,11 +108,9 @@ Public Function CVCryptoSelfTest() As String
 Failed:
     CVCryptoSelfTest = "FAIL " & Err.Number & ": " & Err.Description
 End Function
-
 Public Sub CVSaveActiveTestDocument(ByVal filename As String)
     ActiveWorkbook.SaveAs Filename:=filename, FileFormat:=xlOpenXMLWorkbook
 End Sub
-
 Public Sub CVExportActiveTestDocument(ByVal filename As String)
     ActiveWorkbook.ExportAsFixedFormat Type:=xlTypePDF, Filename:=filename
 End Sub

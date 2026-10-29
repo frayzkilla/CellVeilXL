@@ -1,4 +1,3 @@
-' Automated integration test. No prompts, external programs, or APIs in VBA.
 Public Function CVCarrierSelfTest(ByVal testDirectory As String) As String
     Dim ws As Worksheet, wb As Workbook, reloaded As Workbook, r As Range, c As Range
     Dim cs As Collection, data() As Byte, enc() As Byte, packetBytes() As Byte, decoded() As Byte
@@ -91,14 +90,14 @@ Public Function CVCarrierSelfTest(ByVal testDirectory As String) As String
     On Error GoTo Failed
     ws.Range("D1:E1").UnMerge
     If n = 0 Then Err.Raise 5, , "Merged output accepted"
-    packetBytes(0) = 0
+    packetBytes(0) = MAGIC_BYTE_0 Xor 255
     WriteCarrier cs, packetBytes
     On Error Resume Next
     Err.Clear: enc = ReadCarrier(cs)
     n = Err.Number: Err.Clear
     On Error GoTo Failed
     If n = 0 Then Err.Raise 5, , "Invalid magic accepted"
-    packetBytes(0) = 67
+    packetBytes(0) = MAGIC_BYTE_0
     PutLength packetBytes, 6, MAX_BYTES + 1
     WriteCarrier cs, packetBytes
     On Error Resume Next

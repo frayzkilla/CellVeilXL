@@ -1,5 +1,4 @@
-﻿"""Generate keys elsewhere; Excel never needs Python. No registry or short-key lookup."""
-import argparse
+﻿import argparse
 import base64
 import json
 import secrets
@@ -24,7 +23,7 @@ def generate(mode):
     raise ValueError('Unknown mode')
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__)
+    p=argparse.ArgumentParser(description='Generate keys elsewhere; Excel never needs Python. No registry or short-key lookup.')
     p.add_argument('--mode',required=True,choices=['demo','production'])
     p.add_argument('--output',required=True,type=Path,help='New private key JSON file; do not share')
     a=p.parse_args()

@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $securityPath = 'HKCU:/Software/Microsoft/Office/16.0/Excel/Security'
 $oldValue = Get-ItemProperty -LiteralPath $securityPath -Name AccessVBOM -ErrorAction SilentlyContinue
@@ -24,7 +24,6 @@ try {
                 $code += [Environment]::NewLine + [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot 'carrier_tests.vba'))
                 $code = $code.Replace('CRYPTO_MODE As String = "production"',('CRYPTO_MODE As String = "'+$mode+'"'))
                 $code = $code.Replace('    MsgBox gStep & ": " & msg, vbCritical, "CellVeilXL"','    Err.Raise 5, , gStep & ": " & msg')
-                # Automate only UI: execute the original macro bodies without blocking dialogs.
                 $code = [regex]::Replace($code,'(?ms)^    MsgBox .*?(?=^    Exit Sub|^End Sub)','    Debug.Print "Test notification"' + "`r`n")
                 $carrierPath = Join-Path $testDir ('example-'+$mode+'.xlsx')
                 $code = $code.Replace('selected = Application.GetOpenFilename("Excel document (*.xlsx),*.xlsx")',('selected = "'+$carrierPath+'"'))

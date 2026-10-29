@@ -1,14 +1,16 @@
-
 Option Explicit
-' CellVeilXL 2.0: self-contained module; import only this file into Excel.
-Public Const CRYPTO_MODE As String = "production"  ' "demo" or "production"
+Private Const MAGIC_BYTE_0 As Byte = 67
+Private Const MAGIC_BYTE_1 As Byte = 86
+Private Const MAGIC_BYTE_2 As Byte = 88
+Private Const MAGIC_BYTE_3 As Byte = 51
+Public Const CRYPTO_MODE As String = "production"
 Private Const SCR_SHEET As String = "List1"
 Private Const HOST_SHEET As String = "List2"
 Private Const SOURCE_RANGE As String = "A1:B10"
 Private Const PUBLIC_KEY_CELL As String = "H1"
 Private Const PRIVATE_KEY_CELL As String = "H2"
 Private Const OUTPUT_CELL As String = "D1"
-Private Const HOST_RANGE As String = "" ' Empty = UsedRange; same selection for extraction
+Private Const HOST_RANGE As String = ""
 Private Const MAX_BYTES As Long = 1048576
 Private Const MAX_CELLS As Long = 200000
 Private Const FONTS As String = "Arial|Calibri|Segoe UI|Tahoma"
@@ -16,7 +18,6 @@ Private gStep As String
 Private rngStarted As Boolean
 Private sb(255) As Byte
 Private sbReady As Boolean
-
 Private Function ModeNumber() As Long
     Select Case LCase$(CRYPTO_MODE)
         Case "demo": ModeNumber = 1
@@ -169,7 +170,6 @@ Private Sub RestoreRange(ByRef data() As Byte)
     On Error GoTo Rollback
     started = True: i = 0
     For Each c In target.Cells
-        ' Text must never be interpreted as an Excel formula.
         If kinds(i) = "s" Then
             c.NumberFormat = "@": c.Value2 = values(i)
         ElseIf kinds(i) = "z" Then
@@ -212,7 +212,6 @@ Private Function ValidNumber(ByVal s As String) As Boolean
         ch = Mid$(s, i, 1)
         If InStr(1, "0123456789.Ee+-", ch, vbBinaryCompare) = 0 Then Exit Function
     Next
-    ' Str(Val()) normalization rejects partially parsed or malformed strings.
     On Error GoTo Bad
     ValidNumber = (Val(s) = CDbl(Replace(s, ".", Application.International(xlDecimalSeparator))))
 Bad:
@@ -226,7 +225,7 @@ Private Function Packet(ByRef encrypted() As Byte, ByVal mode As Long) As Byte()
     n = UBound(encrypted) + 1
     If n > MAX_BYTES Then Err.Raise 5, , "Encrypted packet too large"
     ReDim b(0 To n + 9)
-    b(0) = 67: b(1) = 86: b(2) = 88: b(3) = 51: b(4) = mode: b(5) = 1
+    b(0) = MAGIC_BYTE_0: b(1) = MAGIC_BYTE_1: b(2) = MAGIC_BYTE_2: b(3) = MAGIC_BYTE_3: b(4) = mode: b(5) = 1
     PutLength b, 6, n
     For i = 0 To n - 1: b(10 + i) = encrypted(i): Next
     Packet = b
@@ -272,7 +271,7 @@ Private Function Feed(ByRef b() As Byte, ByRef count As Long, ByRef acc As Long,
         bits = bits - 8: b(count) = acc \ (2 ^ bits): count = count + 1
         acc = acc And ((2 ^ bits) - 1)
         If count = 10 Then
-            If b(0) <> 67 Or b(1) <> 86 Or b(2) <> 88 Or b(3) <> 51 Or b(5) <> 1 Then Err.Raise 5, , "No CellVeilXL v3 packet"
+            If b(0) <> MAGIC_BYTE_0 Or b(1) <> MAGIC_BYTE_1 Or b(2) <> MAGIC_BYTE_2 Or b(3) <> MAGIC_BYTE_3 Or b(5) <> 1 Then Err.Raise 5, , "No CellVeilXL v3 packet"
             If b(4) <> ModeNumber() Then Err.Raise 5, , "Packet mode differs from CRYPTO_MODE"
             n = CDbl(b(6)) + 256# * b(7) + 65536# * b(8) + 16777216# * b(9)
             If n < 28 Or n > MAX_BYTES Or (n + 10#) * 8# > available Then Err.Raise 5, , "Invalid packet length"
@@ -326,10 +325,8 @@ Public Sub EmbedScr()
     oldScreen = Application.ScreenUpdating: oldEvents = Application.EnableEvents: stateSaved = True
     Application.ScreenUpdating = False: Application.EnableEvents = False
     gStep = "Create document copy"
-    ' A fresh workbook excludes source sheet, VBA, names, comments and linked objects.
     Set outputBook = Workbooks.Add(xlWBATWorksheet): Set destination = outputBook.Worksheets(1)
     destination.Name = HOST_SHEET
-    ' Keep values, formatting and layout of the visible carrier document.
     wsH.UsedRange.Copy
     destination.Range(wsH.UsedRange.Address).PasteSpecial xlPasteValues
     destination.Range(wsH.UsedRange.Address).PasteSpecial xlPasteFormats
@@ -351,8 +348,6 @@ Public Sub EmbedScr()
     For Each row In wsH.UsedRange.Columns
         destination.Columns(row.Column).Hidden = row.EntireColumn.Hidden
     Next
-    ' Formula results can become text: keep them out of the carrier in both directions.
-    ' Encoding uses the final workbook's cell set, and rechecks its capacity.
     Set cs = CarrierCells(destination)
     gStep = "Write formatting bits": WriteCarrier cs, b
     Application.ScreenUpdating = oldScreen: Application.EnableEvents = oldEvents
@@ -380,7 +375,6 @@ Public Sub ExtractScr()
     selected = Application.GetOpenFilename("Excel document (*.xlsx),*.xlsx")
     If VarType(selected) = vbBoolean Then Exit Sub
     oldEvents = Application.EnableEvents: stateSaved = True: Application.EnableEvents = False
-    ' xlsx excludes VBA; no external links are refreshed.
     Set carrier = Workbooks.Open(CStr(selected), UpdateLinks:=0, ReadOnly:=True): opened = True
     Set cs = CarrierCells(carrier.Worksheets(HOST_SHEET))
     gStep = "Read hidden packet": encrypted = ReadCarrier(cs)
@@ -397,10 +391,6 @@ Failed:
     If stateSaved Then Application.EnableEvents = oldEvents
     MsgBox gStep & ": " & msg, vbCritical, "CellVeilXL"
 End Sub
-
-
-' --- Cryptography ---
-' Pure VBA only. Rnd is NOT a cryptographic RNG. This affects BOTH modes.
 Private Function Unsigned(ByVal n As Long) As Double
     Unsigned = n
     If n < 0 Then Unsigned = Unsigned + 4294967296#
@@ -646,7 +636,6 @@ Public Function CVDecode(ByVal value As String, ByVal size As Long) As Byte()
     If j <> size Or acc <> 0 Then Err.Raise 5, , "Non-canonical key encoding"
     CVDecode = b
 End Function
-
 Public Function CVPublic(ByRef privateKey() As Byte, ByVal mode As Long) As Byte()
     Dim baseValue(31) As Byte
     If mode = 1 Then
@@ -701,10 +690,6 @@ Public Function CVOpen(ByRef data() As Byte, ByVal privateText As String, ByVal 
     CVOpen = CVCTR(encrypted, key, nonce)
     Erase priv: Erase secretValue: Erase key
 End Function
-
-' --- Asymmetric field arithmetic ---
-' Finite-field X25519 arithmetic, radix 2^16. Based on the public-domain
-' TweetNaCl Montgomery ladder. Not a constant-time VBA implementation.
 Private Sub Carry(ByRef o As Variant)
     Dim i As Long, c As Double
     For i = 0 To 15
@@ -817,8 +802,6 @@ Public Function CVX25519(ByRef scalar() As Byte, ByRef point() As Byte) As Byte(
     a = FMul(a, FInverse(c))
     CVX25519 = PackField(a)
 End Function
-
-' Demo only: 87-bit safe-prime finite-field DH. Decimal preserves exact integers.
 Private Function DemoP() As Variant
     DemoP = CDec("154742504910672534362390399")
 End Function
@@ -826,7 +809,6 @@ Private Function DemoQ() As Variant
     DemoQ = CDec("77371252455336267181195199")
 End Function
 Private Function ModD(ByVal n As Variant, ByVal p As Variant) As Variant
-    ' Decimal division can round very near integer boundaries: adjust remainder.
     Dim q As Variant, r As Variant
     q = Fix(n / p): r = n - q * p
     If r < 0 Then r = r + p

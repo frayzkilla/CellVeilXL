@@ -75,7 +75,11 @@ python python/keygen.py --mode demo --output demo-keys.json
 В начале кода находятся настройки:
 
 ```vb
-Public Const CRYPTO_MODE As String = "production" ' или "demo"
+Private Const MAGIC_BYTE_0 As Byte = 67
+Private Const MAGIC_BYTE_1 As Byte = 86
+Private Const MAGIC_BYTE_2 As Byte = 88
+Private Const MAGIC_BYTE_3 As Byte = 51
+Public Const CRYPTO_MODE As String = "production"
 Private Const SOURCE_RANGE As String = "A1:A10"
 Private Const PUBLIC_KEY_CELL As String = "B1"
 Private Const PRIVATE_KEY_CELL As String = "B2"
@@ -115,6 +119,8 @@ Private Const HOST_RANGE As String = ""
 ## Как устроено скрытие
 
 Сначала программа записывает размеры исходного диапазона, значения ячеек и их числовые форматы в UTF-16. Затем создаёт временную пару ключей и получает общий секрет с открытым ключом получателя. Через HKDF-SHA256 из него получается ключ AES, которым шифруются данные.
+
+Первые 4 байта скрытого потока по умолчанию — ASCII-литерал `CVX3`: `67, 86, 88, 51` (hex: `43 56 58 33`). Их можно задать константами `MAGIC_BYTE_0`–`MAGIC_BYTE_3` в начале `cellveilxl.bas`, указав целые значения от 0 до 255. Изменение этих байтов может снизить вероятность детекции по фиксированной сигнатуре `CVX3`, но не исключает обнаружение по другим признакам. Для скрытия и извлечения нужны одинаковые значения всех четырёх констант; для ранее созданных файлов сохраните использованные значения.
 
 В пакет входят служебный заголовок, режим, длина, временный открытый ключ, nonce и зашифрованные данные. Закрытого ключа получателя в пакете нет. При извлечении программа выполняет обратные действия с закрытым ключом.
 
