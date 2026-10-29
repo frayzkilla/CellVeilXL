@@ -3,3 +3,4 @@ __pycache__/
 /tests/
 *-keys.json
 *.pem
+templates/create_event_plan.py
